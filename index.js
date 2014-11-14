@@ -3,6 +3,8 @@ var http = require('http');
 var https = require('https');
 var owns = {}.hasOwnProperty;
 
+http.globalAgent.maxSockets = 20; //default limitation is only 5 connections in the same time. It's too low for high-load applications.
+
 module.exports = function proxyMiddleware(options) {
 
   var httpLib = options.protocol === 'https:' ? https : http;
@@ -12,6 +14,15 @@ module.exports = function proxyMiddleware(options) {
   options.port = options.port;
 
   return function (req, resp, next) {
+  
+     //connection can be terminated by browser before proxy establish connection.
+     //in this case we shouldn't send any request
+     var isTerminated = false;
+     resp.on('close', function () { 
+           isTerminated = true;
+           return;
+        });
+  
     var url = req.url;
     // You can pass the route within the options, as well
     if (typeof options.route === 'string') {
@@ -35,6 +46,12 @@ module.exports = function proxyMiddleware(options) {
     delete opts.headers.host;
 
     var myReq = request(opts, function (myRes) {
+	   if (isTerminated) {
+           myRes.unpipe();
+           myReq.abort();
+           return;
+        }
+			
       var statusCode = myRes.statusCode
         , headers = myRes.headers
         , location = headers.location;
@@ -49,6 +66,13 @@ module.exports = function proxyMiddleware(options) {
       myRes.on('error', function (err) {
         next(err);
       });
+	  resp.removeAllListeners('close');
+      resp.on('close', function () { //connection terminated during the request piping
+            myRes.unpipe();
+            myReq.abort();
+
+            next();
+        });
       myRes.pipe(resp);
     });
     myReq.on('error', function (err) {
