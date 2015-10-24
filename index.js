@@ -19,6 +19,7 @@ module.exports = function proxyMiddleware(options) {
 
   return function (req, resp, next) {
     var url = req.url;
+
     // You can pass the route within the options, as well
     if (typeof options.route === 'string') {
       if (url === options.route) {
@@ -32,13 +33,16 @@ module.exports = function proxyMiddleware(options) {
 
     //options for this request
     var opts = extend({}, options);
-    if (url && url.charAt(0) === '?') { // prevent /api/resource/?offset=0
+    if (url && url.charAt(1) === '?') { // prevent /api/resource/?offset=0 when url === '/?query=param'
       if (options.pathname.length > 1 && options.pathname.charAt(options.pathname.length - 1) === '/') {
         opts.path = options.pathname.substring(0, options.pathname.length - 1) + url;
-      } else {
-        opts.path = options.pathname + url;
+      } else { // if pathname doesn't have a trailing slash
+        opts.path = options.pathname + url.substring(1); // discard leading slash in url
       }
+    } else if (url && url.charAt(0) === '?') { // prevent /api/resource/?offset=0 when url === '?query=param'
+        opts.path = options.pathname + url;
     } else if (url) {
+      if (url.charAt(0) === '/' && url.charAt(1) === '?') url = url.substring(0)
       opts.path = slashJoin(options.pathname, url);
     } else {
       opts.path = options.pathname;
@@ -119,12 +123,9 @@ function rewriteCookieHosts(existingHeaders, opts, applyTo, req) {
 }
 
 function slashJoin(p1, p2) {
-  var trailing_slash = false;
-
-  if (p1.length && p1[p1.length - 1] === '/') { trailing_slash = true; }
-  if (trailing_slash && p2.length && p2[0] === '/') {p2 = p2.substring(1); }
-
-  return p1 + p2;
+  if (p1.length && p1[p1.length - 1] === '/') {p1 = p1.substring(0, p1.length - 1); }
+  if (p2.length && p2[0] === '/') {p2 = p2.substring(1); }
+  return p1 + '/' + p2;
 }
 
 function extend(obj, src) {
