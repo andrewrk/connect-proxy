@@ -547,6 +547,65 @@ describe("proxy", function() {
     })
   });
 
+  it("calls the transformReq function and transforms the request headers", function(done) {
+    var destServer = createServerWithLibName('http', function(req, resp) {
+      assert.strictEqual(req.headers.host, 'localhost:8086');
+      assert.strictEqual(req.headers['x-custom-header'], 'hello localhost:8087');
+      resp.statusCode = 200;
+      resp.write(req.url);
+      resp.end();
+    });
+
+    var proxyOptions = url.parse('http://localhost:8086/');
+    proxyOptions.transformReq = function (existingHeaders, opts, applyTo) {
+      applyTo['x-custom-header'] = 'hello ' + existingHeaders.host;
+    };
+
+    var app = connect();
+    app.use(proxy(proxyOptions));
+
+    destServer.listen(8086, 'localhost', function() {
+      app.listen(8087);
+
+      var options = url.parse('http://localhost:8087/foo/test/');
+      http.get(options, function () {
+        // ok...
+        done();
+      }).on('error', function () {
+        assert.fail('Request proxy failed');
+      });
+    });
+  });
+
+  it("calls the transformResp function and transforms the response headers", function(done) {
+    var destServer = createServerWithLibName('http', function(req, resp) {
+      resp.statusCode = 200;
+      resp.setHeader('x-custom-header', 'hello');
+      resp.write(req.url);
+      resp.end();
+    });
+
+    var proxyOptions = url.parse('http://localhost:8088/');
+    proxyOptions.transformResp = function (existingHeaders, opts, applyTo) {
+      applyTo['x-custom-reply'] = 'hi there ' + existingHeaders['x-custom-header'];
+    };
+
+    var app = connect();
+    app.use(proxy(proxyOptions));
+
+    destServer.listen(8088, 'localhost', function() {
+      app.listen(8089);
+
+      var options = url.parse('http://localhost:8089/foo/test/');
+      http.get(options, function (resp) {
+        assert.strictEqual(resp.headers['x-custom-reply'], 'hi there hello');
+        done();
+      }).on('error', function () {
+        assert.fail('Request proxy failed');
+      });
+    });
+  });
+
 });
 
 function createServerWithLibName(libName, requestListener) {

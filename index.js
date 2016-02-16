@@ -47,6 +47,7 @@ module.exports = function proxyMiddleware(options) {
     opts.headers = options.headers ? merge(req.headers, options.headers) : req.headers;
 
     applyViaHeader(req.headers, opts, opts.headers);
+    transformReq(req.headers, opts, opts.headers);
 
     if (!options.preserveHost) {
       // Forwarding the host breaks dotcloud
@@ -64,6 +65,7 @@ module.exports = function proxyMiddleware(options) {
       }
       applyViaHeader(myRes.headers, opts, myRes.headers);
       rewriteCookieHosts(myRes.headers, opts, myRes.headers, req);
+      transformResp(myRes.headers, opts, myRes.headers);
       resp.writeHead(myRes.statusCode, myRes.headers);
       myRes.on('error', function (err) {
         next(err);
@@ -116,6 +118,22 @@ function rewriteCookieHosts(existingHeaders, opts, applyTo, req) {
   }
 
   applyTo['set-cookie'] = rewrittenCookies;
+}
+
+function transformReq (existingHeaders, opts, applyTo) {
+  if (typeof opts.transformReq !== 'function') {
+    return;
+  }
+
+  opts.transformReq(existingHeaders, opts, applyTo);
+}
+
+function transformResp (existingHeaders, opts, applyTo) {
+  if (typeof opts.transformResp !== 'function') {
+    return;
+  }
+
+  opts.transformResp(existingHeaders, opts, applyTo);
 }
 
 function slashJoin(p1, p2) {
