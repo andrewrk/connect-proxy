@@ -58,10 +58,14 @@ module.exports = function proxyMiddleware(options) {
         , headers = myRes.headers
         , location = headers.location;
       // Fix the location
-      if (((statusCode > 300 && statusCode < 304) || statusCode === 201) && location && location.indexOf(options.href) > -1) {
-        // absoulte path
-        headers.location = location.replace(options.href, slashJoin('/', slashJoin((options.route || ''), '')));
-      }
+      if ((statusCode > 300 && statusCode < 304) && location && location.indexOf(options.href) > -1) {
+        // don't use absoulte path as it often will be a problem
+				headers.location = preserveUri(location)
+			} else if ((statusCode === 201)  && location && location.indexOf(options.href) > -1) {
+					//absoulte path
+				  headers.location = location.replace(options.href, slashJoin('/', slashJoin((options.route || ''), '')));
+			}
+
       applyViaHeader(myRes.headers, opts, myRes.headers);
       rewriteCookieHosts(myRes.headers, opts, myRes.headers, req);
       resp.writeHead(myRes.statusCode, myRes.headers);
@@ -138,4 +142,30 @@ function merge(src1, src2) {
     extend(merged, src1);
     extend(merged, src2);
     return merged;
+}
+
+//keep any uri bits after the host
+function replaceHostPreserveUri(uri, newHost) {
+		var uriStr = uri, 
+    	delimiter = '/',
+      start = 3,
+      tokens = uriStr.split(delimiter).slice(start),
+      result = tokens.join(delimiter);
+			 
+		result = '/' + result
+
+    return (newHost === undefined ? result : newHost + result)
+}
+
+//keep any uri bits after the host
+function preserveUri(uri) {
+	    var uriStr = uri,
+					      delimiter = '/',
+								      start = 3,
+											      tokens = uriStr.split(delimiter).slice(start),
+														      result = tokens.join(delimiter);
+
+			    result = '/' + result
+
+						    return result
 }
