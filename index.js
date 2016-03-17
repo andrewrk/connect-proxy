@@ -60,7 +60,7 @@ module.exports = function proxyMiddleware(options) {
       // Fix the location
       if ((statusCode > 300 && statusCode < 304) && location && location.indexOf(options.href) > -1) {
         // don't use absoulte path as it often will be a problem
-				headers.location = replaceHostPreserveUri(location, req.headers.origin)
+				headers.location = preserveUri(location)
 			} else if ((statusCode === 201)  && location && location.indexOf(options.href) > -1) {
 					//absoulte path
 				  headers.location = location.replace(options.href, slashJoin('/', slashJoin((options.route || ''), '')));
@@ -155,4 +155,17 @@ function replaceHostPreserveUri(uri, newHost) {
 		result = '/' + result
 
     return (newHost === undefined ? result : newHost + result)
+}
+
+//keep any uri bits after the host
+function preserveUri(uri) {
+	    var uriStr = uri,
+					      delimiter = '/',
+								      start = 3,
+											      tokens = uriStr.split(delimiter).slice(start),
+														      result = tokens.join(delimiter);
+
+			    result = '/' + result
+
+						    return result
 }
