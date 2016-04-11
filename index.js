@@ -58,9 +58,14 @@ module.exports = function proxyMiddleware(options) {
         , headers = myRes.headers
         , location = headers.location;
       // Fix the location
-      if (((statusCode > 300 && statusCode < 304) || statusCode === 201) && location && location.indexOf(options.href) > -1) {
-        // absoulte path
-        headers.location = location.replace(options.href, slashJoin('/', slashJoin((options.route || ''), '')));
+      if (((statusCode > 300 && statusCode < 304) || statusCode === 201) && location) {
+          // absolute path with domain
+          if(location.indexOf(options.href) > -1) {
+            headers.location = location.replace(options.href, slashJoin('/', slashJoin((options.route || ''), '')));
+          // absolute path without domain
+          } else if(location[0] === '/' && req.originalUrl.slice(req.url.length*-1) === req.url) {
+            headers.location = req.originalUrl.slice(0, req.url.length*-1) + headers.location;
+          }
       }
       applyViaHeader(myRes.headers, opts, myRes.headers);
       rewriteCookieHosts(myRes.headers, opts, myRes.headers, req);
