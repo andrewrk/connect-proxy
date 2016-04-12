@@ -70,6 +70,12 @@ module.exports = function proxyMiddleware(options) {
       });
       myRes.pipe(resp);
     });
+
+    if (options.body) {
+      myReq.write(options.body);
+    }
+
+
     myReq.on('error', function (err) {
       next(err);
     });
