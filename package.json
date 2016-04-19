@@ -1,5 +1,5 @@
 {
-  "name": "proxy-middleware",
+  "name": "proxy-middleware-fork",
   "version": "0.15.0",
   "description": "http(s) proxy as connect middleware",
   "main": "index.js",
