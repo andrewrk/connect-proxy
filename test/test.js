@@ -370,13 +370,16 @@ describe("proxy", function() {
     var cookie2 = function(host) { return 'cookie2=value2; Expires=Fri, 01-Mar-2019 00:00:01 GMT; Domain=' + host + '; Path=/test/'; };
     var cookie3 = function(host) { return 'cookie3=value3'; };
     var cookie4 = function(host) { return 'cookie4=value4; Expires=Fri, 01-Mar-2019 00:00:01 GMT; Domain=' + host; };
+    var cookie5 = function(host) { return 'cookie5=value5; Expires=Fri, 01-Mar-2019 00:00:01 GMT; Domain=' + host; };
+
     var destServer = createServerWithLibName('http', function(req, resp) {
       resp.statusCode = 200;
       resp.setHeader('set-cookie', [
         cookie1('.server.com'),
         cookie2('.server.com'),
         cookie3('.server.com'),
-        cookie4('.server.com')
+        cookie4('.server.com'),
+        cookie5('.server-with-number42-and-dash.eu')
       ]);
       resp.write(req.url);
       resp.end();
@@ -398,6 +401,7 @@ describe("proxy", function() {
         assert.strictEqual(cookies[1], cookie2(proxyOptions.cookieRewrite));
         assert.strictEqual(cookies[2], cookie3(proxyOptions.cookieRewrite));
         assert.strictEqual(cookies[3], cookie4(proxyOptions.cookieRewrite));
+        assert.strictEqual(cookies[4], cookie5(proxyOptions.cookieRewrite));
         done();
       }).on('error', function () {
         assert.fail('Request proxy failed');
