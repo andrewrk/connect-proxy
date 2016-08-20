@@ -601,33 +601,6 @@ describe("proxy", function() {
     });
   });
 
-  it("sends x-forwarded-for header with options.preserveClient = true (IPv6 version)", function (done) {
-    var serverPort = 8091;
-    var proxyPort = serverPort + 1;
-    var destServer = createServerWithLibName('http', function(req, resp) {
-      assert.strictEqual(req.headers['x-forwarded-for'], '::1');
-      resp.statusCode = 200;
-      resp.end();
-    });
-
-    var proxyOptions = url.parse('http://localhost:' + serverPort);
-    proxyOptions.preserveClient = true;
-    var app = connect();
-    app.use(proxy(proxyOptions));
-
-    destServer.listen(serverPort, 'localhost', function() {
-      app.listen(proxyPort, '::1');
-
-      var options = url.parse('http://[::1]:' + proxyPort  + '/foo/test/');
-      http.get(options, function () {
-        // ok...
-        done();
-      }).on('error', function () {
-        assert.fail('Request proxy failed');
-      });
-    });
-  });
-
   it("properly accumulates x-forwarded-for header", function (done) {
     var serverPort = 8093;
     var proxyPort = serverPort + 1;
