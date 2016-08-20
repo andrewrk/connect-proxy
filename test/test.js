@@ -605,7 +605,7 @@ describe("proxy", function() {
     var serverPort = 8091;
     var proxyPort = serverPort + 1;
     var destServer = createServerWithLibName('http', function(req, resp) {
-      assert.strictEqual(req.headers['x-forwarded-for'], '::ffff:127.0.0.1');
+      assert.strictEqual(req.headers['x-forwarded-for'], '::1');
       resp.statusCode = 200;
       resp.end();
     });
@@ -616,9 +616,9 @@ describe("proxy", function() {
     app.use(proxy(proxyOptions));
 
     destServer.listen(serverPort, 'localhost', function() {
-      app.listen(proxyPort);
+      app.listen(proxyPort, '::1');
 
-      var options = url.parse('http://localhost:' + proxyPort  + '/foo/test/');
+      var options = url.parse('http://[::1]:' + proxyPort  + '/foo/test/');
       http.get(options, function () {
         // ok...
         done();
