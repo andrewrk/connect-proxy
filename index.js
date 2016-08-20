@@ -47,6 +47,7 @@ module.exports = function proxyMiddleware(options) {
     opts.headers = options.headers ? merge(req.headers, options.headers) : req.headers;
 
     applyViaHeader(req.headers, opts, opts.headers);
+    applyXForwarderFor(req.headers, opts, opts.headers, req);
 
     if (!options.preserveHost) {
       // Forwarding the host breaks dotcloud
@@ -91,6 +92,18 @@ function applyViaHeader(existingHeaders, opts, applyTo) {
   }
 
   applyTo.via = viaHeader;
+}
+
+function applyXForwarderFor(existingHeaders, opts, applyTo, req) {
+  if (!opts.preserveClient) return;
+
+  var forwardedFor = existingHeaders['x-forwarded-for'] || '';
+  var parts = forwardedFor === '' ? [] : forwardedFor
+    .split(',')
+    .map(function (part) { return part.trim(); })
+    .filter(function (part) { return part.length > 0 });
+  parts.push(req.connection.remoteAddress)
+  applyTo['x-forwarded-for'] = parts.join(', ');
 }
 
 function rewriteCookieHosts(existingHeaders, opts, applyTo, req) {

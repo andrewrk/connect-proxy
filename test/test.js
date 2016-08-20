@@ -406,11 +406,11 @@ describe("proxy", function() {
   });
 
   it("removes the Secure directive when proxying from https to http", function(done) {
-    var cookie1 = function(host, after) { 
+    var cookie1 = function(host, after) {
       if (after) {
-        return 'cookie1=value1; Expires=Fri, 01-Mar-2019 00:00:01 GMT; Domain=' + host; 
+        return 'cookie1=value1; Expires=Fri, 01-Mar-2019 00:00:01 GMT; Domain=' + host;
       } else {
-        return 'cookie1=value1; Expires=Fri, 01-Mar-2019 00:00:01 GMT; Domain=' + host+';Secure'; 
+        return 'cookie1=value1; Expires=Fri, 01-Mar-2019 00:00:01 GMT; Domain=' + host+';Secure';
       }
     };
 
@@ -512,6 +512,143 @@ describe("proxy", function() {
       app.listen(8073);
 
       var options = url.parse('http://localhost:8073/foo/test/');
+      http.get(options, function () {
+        // ok...
+        done();
+      }).on('error', function () {
+        assert.fail('Request proxy failed');
+      });
+    });
+  });
+
+  it("does not send x-forwarded-for header with default options", function (done) {
+    var serverPort = 8097;
+    var proxyPort = serverPort + 1;
+    var destServer = createServerWithLibName('http', function(req, resp) {
+      assert.strictEqual(req.headers['x-forwarded-for'], undefined);
+      resp.statusCode = 200;
+      resp.end();
+    });
+
+    var proxyOptions = url.parse('http://localhost:' + serverPort);
+    var app = connect();
+    app.use(proxy(proxyOptions));
+
+    destServer.listen(serverPort, 'localhost', function() {
+      app.listen(proxyPort, '127.0.0.1');
+
+      var options = url.parse('http://localhost:' + proxyPort  + '/foo/test/');
+      http.get(options, function () {
+        // ok...
+        done();
+      }).on('error', function () {
+        assert.fail('Request proxy failed');
+      });
+    });
+  });
+
+  it("does not send x-forwarded-for header with options.preserveClient = false", function (done) {
+    var serverPort = 8087;
+    var proxyPort = serverPort + 1;
+    var destServer = createServerWithLibName('http', function(req, resp) {
+      assert.strictEqual(req.headers['x-forwarded-for'], undefined);
+      resp.statusCode = 200;
+      resp.end();
+    });
+
+    var proxyOptions = url.parse('http://localhost:' + serverPort);
+    proxyOptions.preserveClient = false;
+    var app = connect();
+    app.use(proxy(proxyOptions));
+
+    destServer.listen(serverPort, 'localhost', function() {
+      app.listen(proxyPort, '127.0.0.1');
+
+      var options = url.parse('http://localhost:' + proxyPort  + '/foo/test/');
+      http.get(options, function () {
+        // ok...
+        done();
+      }).on('error', function () {
+        assert.fail('Request proxy failed');
+      });
+    });
+  });
+
+  it("sends x-forwarded-for header with options.preserveClient = true (IPv4 version)", function (done) {
+    var serverPort = 8089;
+    var proxyPort = serverPort + 1;
+    var destServer = createServerWithLibName('http', function(req, resp) {
+      assert.strictEqual(req.headers['x-forwarded-for'], '127.0.0.1');
+      resp.statusCode = 200;
+      resp.end();
+    });
+
+    var proxyOptions = url.parse('http://localhost:' + serverPort);
+    proxyOptions.preserveClient = true;
+    var app = connect();
+    app.use(proxy(proxyOptions));
+
+    destServer.listen(serverPort, 'localhost', function() {
+      app.listen(proxyPort, '127.0.0.1');
+
+      var options = url.parse('http://localhost:' + proxyPort  + '/foo/test/');
+      http.get(options, function () {
+        // ok...
+        done();
+      }).on('error', function () {
+        assert.fail('Request proxy failed');
+      });
+    });
+  });
+
+  it("sends x-forwarded-for header with options.preserveClient = true (IPv6 version)", function (done) {
+    var serverPort = 8091;
+    var proxyPort = serverPort + 1;
+    var destServer = createServerWithLibName('http', function(req, resp) {
+      assert.strictEqual(req.headers['x-forwarded-for'], '::ffff:127.0.0.1');
+      resp.statusCode = 200;
+      resp.end();
+    });
+
+    var proxyOptions = url.parse('http://localhost:' + serverPort);
+    proxyOptions.preserveClient = true;
+    var app = connect();
+    app.use(proxy(proxyOptions));
+
+    destServer.listen(serverPort, 'localhost', function() {
+      app.listen(proxyPort);
+
+      var options = url.parse('http://localhost:' + proxyPort  + '/foo/test/');
+      http.get(options, function () {
+        // ok...
+        done();
+      }).on('error', function () {
+        assert.fail('Request proxy failed');
+      });
+    });
+  });
+
+  it("properly accumulates x-forwarded-for header", function (done) {
+    var serverPort = 8093;
+    var proxyPort = serverPort + 1;
+    var destServer = createServerWithLibName('http', function(req, resp) {
+      assert.strictEqual(req.headers['x-forwarded-for'], '127.0.0.2, 127.0.0.1');
+      resp.statusCode = 200;
+      resp.end();
+    });
+
+    var proxyOptions = url.parse('http://localhost:' + serverPort);
+    proxyOptions.preserveClient = true;
+    var app = connect();
+    app.use(proxy(proxyOptions));
+
+    destServer.listen(serverPort, 'localhost', function() {
+      app.listen(proxyPort, '127.0.0.1');
+
+      var options = url.parse('http://localhost:' + proxyPort  + '/foo/test/');
+      options.headers = {
+        'x-forwarded-for': '127.0.0.2 '
+      };
       http.get(options, function () {
         // ok...
         done();
