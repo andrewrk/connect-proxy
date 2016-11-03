@@ -68,6 +68,9 @@ module.exports = function proxyMiddleware(options) {
       myRes.on('error', function (err) {
         next(err);
       });
+      myRes.on('end', function (err) {
+        next();
+      });
       myRes.pipe(resp);
     });
     myReq.on('error', function (err) {
