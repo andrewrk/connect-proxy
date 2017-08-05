@@ -62,6 +62,9 @@ module.exports = function proxyMiddleware(options) {
         // absoulte path
         headers.location = location.replace(options.href, slashJoin('/', slashJoin((options.route || ''), '')));
       }
+      if (statusCode === 401 && opts.suppressHttpAuthPopup) {
+        delete headers['www-authenticate'];
+      }
       applyViaHeader(myRes.headers, opts, myRes.headers);
       rewriteCookieHosts(myRes.headers, opts, myRes.headers, req);
       resp.writeHead(myRes.statusCode, myRes.headers);
