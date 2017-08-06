@@ -364,6 +364,32 @@ describe("proxy", function() {
     })
   });
 
+  it("removes the www-authenticate header from the proxy if suppressHttpAuthPopup option is set to true and the response status code is 401 (Unauthorized)", function(done) {
+    var destServer = createServerWithLibName('http', function(req, resp) {
+      resp.statusCode = 401;
+      resp.setHeader('WWW-Authenticate', 'Basic realm="myRealm"');
+      resp.write(req.url);
+      resp.end();
+    });
+
+    var proxyOptions = url.parse('http://localhost:8008/');
+    proxyOptions.suppressHttpAuthPopup = true;
+    var app = connect();
+    app.use(proxy(proxyOptions));
+
+    destServer.listen(8008, 'localhost', function() {
+      app.listen(8007);
+
+      var options = url.parse('http://localhost:8007/foo/test/');
+
+      http.get(options, function (res) {
+        assert.strictEqual(undefined, res.headers['www-authenticate']);
+        done();
+      }).on('error', function () {
+        assert.fail('Request proxy failed');
+      });
+    })
+  });
 
   it("correctly rewrites the cookie domain for set-cookie headers", function(done) {
     var cookie1 = function(host) { return 'cookie1=value1; Expires=Fri, 01-Mar-2019 00:00:01 GMT; Path=/; Domain=' + host + '; HttpOnly'; };
