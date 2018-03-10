@@ -60,7 +60,10 @@ module.exports = function proxyMiddleware(options) {
       // Fix the location
       if (((statusCode > 300 && statusCode < 304) || statusCode === 201) && location && location.indexOf(options.href) > -1) {
         // absoulte path
-        headers.location = location.replace(options.href, slashJoin('/', slashJoin((options.route || ''), '')));
+        var locationUrl = location.split(';')[0].split('?')[0].split('#')[0];
+        headers.location = locationUrl.replace(options.href, slashJoin('/', slashJoin((options.route || ''), '')))
+                         + location.substr(locationUrl.length)
+                         ;
       }
       applyViaHeader(myRes.headers, opts, myRes.headers);
       rewriteCookieHosts(myRes.headers, opts, myRes.headers, req);
