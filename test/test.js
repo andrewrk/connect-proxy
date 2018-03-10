@@ -365,6 +365,34 @@ describe("proxy", function() {
   });
 
 
+  it("do not replace the query parameters when executing OAuth 2 authentication (Authorization Code Grant)", function(done) {
+    var destServer = createServerWithLibName('http', function(req, resp) {
+      resp.statusCode = 302;
+      resp.setHeader('location', 'http://localhost:9999/oauth/authorize?client_id=test&redirect_uri=http://localhost:8057/login&response_type=code&scope=read&state=test');
+      resp.write(req.url);
+      resp.end();
+    });
+
+    var proxyOptions = url.parse('http://localhost:8057/');
+    var app = connect();
+    app.use(proxy(proxyOptions));
+
+    destServer.listen(8057, 'localhost', function() {
+      app.listen(8056);
+
+      var options = url.parse('http://localhost:8056/foo/test/');
+
+      http.get(options, function (res) {
+        console.assert(res.headers.location);
+        assert.strictEqual(res.headers.location, 'http://localhost:9999/oauth/authorize?client_id=test&redirect_uri=http://localhost:8057/login&response_type=code&scope=read&state=test');
+        done();
+      }).on('error', function () {
+        assert.fail('Request proxy failed');
+      });
+    })
+  });
+
+
   it("correctly rewrites the cookie domain for set-cookie headers", function(done) {
     var cookie1 = function(host) { return 'cookie1=value1; Expires=Fri, 01-Mar-2019 00:00:01 GMT; Path=/; Domain=' + host + '; HttpOnly'; };
     var cookie2 = function(host) { return 'cookie2=value2; Expires=Fri, 01-Mar-2019 00:00:01 GMT; Domain=' + host + '; Path=/test/'; };
