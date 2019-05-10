@@ -63,6 +63,10 @@ module.exports = function proxyMiddleware(options) {
         headers.location = location.replace(options.href, slashJoin('/', slashJoin((options.route || ''), '')));
       }
       applyViaHeader(myRes.headers, opts, myRes.headers);
+      myRes.headers['set-cookie'] = myRes.headers['set-cookie'].map(function (c) {
+          var regEx = new RegExp('[\u0001-\u0019]+');
+        return c.replace(regEx, '');
+      });
       rewriteCookieHosts(myRes.headers, opts, myRes.headers, req);
       resp.writeHead(myRes.statusCode, myRes.headers);
       myRes.on('error', function (err) {
